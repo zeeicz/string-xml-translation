@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XML TRANSLATOR</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="background-overlay"></div>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <h1>XML Translator</h1>
+        <p class="subtitle">Translate your strings.xml files with ease</p>
+      </div>
+
+      <div class="form-group">
+        <label for="fromLanguage">From Language:</label>
+        <select id="fromLanguage" class="language-select">
+          <option value="en">English (EN)</option>
+          <option value="id">Indonesian (ID)</option>
+          <option value="ko">Korean (KO)</option>
+          <option value="zh-CN">Chinese (Simplified) (ZH-CN)</option>
+          <option value="zh-TW">Chinese (Traditional) (ZH-TW)</option>
+          <option value="ja">Japanese (JA)</option>
+          <option value="es">Spanish (ES)</option>
+          <option value="fr">French (FR)</option>
+          <option value="de">German (DE)</option>
+          <option value="it">Italian (IT)</option>
+          <option value="pt">Portuguese (PT)</option>
+          <option value="ru">Russian (RU)</option>
+          <option value="ar">Arabic (AR)</option>
+          <option value="hi">Hindi (HI)</option>
+          <option value="tr">Turkish (TR)</option>
+          <option value="vi">Vietnamese (VI)</option>
+          <option value="th">Thai (TH)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="toLanguage">To Language:</label>
+        <select id="toLanguage" class="language-select">
+          <option value="en">English (EN)</option>
+          <option value="id">Indonesian (ID)</option>
+          <option value="ko">Korean (KO)</option>
+          <option value="zh-CN">Chinese (Simplified) (ZH-CN)</option>
+          <option value="zh-TW">Chinese (Traditional) (ZH-TW)</option>
+          <option value="ja">Japanese (JA)</option>
+          <option value="es">Spanish (ES)</option>
+          <option value="fr">French (FR)</option>
+          <option value="de">German (DE)</option>
+          <option value="it">Italian (IT)</option>
+          <option value="pt">Portuguese (PT)</option>
+          <option value="ru">Russian (RU)</option>
+          <option value="ar">Arabic (AR)</option>
+          <option value="hi">Hindi (HI)</option>
+          <option value="tr">Turkish (TR)</option>
+          <option value="vi">Vietnamese (VI)</option>
+          <option value="th">Thai (TH)</option>
+        </select>
+      </div>
+
+<!-- Add this right after the file input in your HTML -->
+<div class="file-upload">
+  <label for="xmlFile" class="file-upload-label" id="fileLabel">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="17 8 12 3 7 8"></polyline>
+      <line x1="12" y1="3" x2="12" y2="15"></line>
+    </svg>
+    <span id="fileName">Choose XML File</span>
+    <input type="file" id="xmlFile" accept=".xml" onchange="validateFile()">
+  </label>
+  <div id="fileError" class="error-message"></div>
+</div>
+<div id="selectedFileInfo" class="selected-file-info" style="display: none;"></div>
+
+<button class="translate-btn" onclick="uploadFile()" id="translateButton" disabled>
+  <span class="btn-text">Translate</span>
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+    <polyline points="7 10 12 15 17 10"></polyline>
+    <line x1="12" y1="15" x2="12" y2="3"></line>
+  </svg>
+</button>
+
+      
+      <div id="progress-container" class="progress-container">
+        <div class="progress-info">
+          <span id="progress-text">0%</span>
+          <div class="line-counter-container">
+            <span id="line-counter">0/0</span>
+          </div>
+        </div>
+        <div class="progress-bar">
+          <div id="progress-bar" class="progress-fill"></div>
+        </div>
+        <div id="line-info" class="line-info">Waiting to start...</div>
+      </div>
+      
+      <!-- Log container for translation progress -->
+      <div id="log-container" class="log-container" style="display: none;">
+        <h3>Translation Log</h3>
+        <div id="translation-log" class="translation-log"></div>
+      </div>
+
+      <a id="downloadLink" class="download-btn" style="display:none;" download="strings_translated.xml">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Download Translated File
+      </a>
+      
+      <div id="refreshPrompt" style="display:none; margin-top:10px; text-align:center;">
+  <p>Want to translate another file? <a href="javascript:refreshPage()" style="color:#4361ee; cursor:pointer;">Click here</a> to refresh</p>
+</div>
+
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

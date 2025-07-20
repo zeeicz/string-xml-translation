@@ -1,165 +1,165 @@
-// Display translation status message in the UI
-function displayStatus(message) {
-  document.querySelector("#line-info").textContent = message;
+function updateStatusText(message) {
+  document.getElementById("line-info").textContent = message;
 }
 
-// Append a new message to the translation log area
-function appendTranslationLog(message) {
-  const logArea = document.querySelector("#translation-log");
-  const entry = document.createElement("div");
-  entry.className = "log-entry";
-  entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-  logArea.appendChild(entry);
-  logArea.scrollTop = logArea.scrollHeight; // Auto-scroll to the bottom
+// Function to update translation log
+function updateTranslationLog(logMessage) {
+  const logContainer = document.getElementById("translation-log");
+  const logEntry = document.createElement("div");
+  logEntry.className = "log-entry";
+  logEntry.textContent = logMessage;
+  logContainer.appendChild(logEntry);
+  
+  // Auto-scroll to the bottom of the log
+  logContainer.scrollTop = logContainer.scrollHeight;
 }
 
-// Validate uploaded XML file
-function handleFileValidation() {
-  const fileInput = document.getElementById("xmlFile");
+function validateFile() {
+  const fileInput = document.getElementById('xmlFile');
+  const fileNameDisplay = document.getElementById('fileName');
+  const fileError = document.getElementById('fileError');
+  const fileInfoDisplay = document.getElementById('selectedFileInfo');
+  const translateButton = document.getElementById('translateButton');
+  
+  fileError.textContent = '';
+  translateButton.disabled = true;
+  
+  if (!fileInput.files.length) {
+    fileNameDisplay.textContent = 'Choose XML File';
+    fileInfoDisplay.style.display = 'none';
+    return;
+  }
+  
   const file = fileInput.files[0];
-  const nameDisplay = document.getElementById("fileName");
-  const errorMsg = document.getElementById("fileError");
-  const infoDisplay = document.getElementById("selectedFileInfo");
-  const translateBtn = document.getElementById("translateButton");
-
-  errorMsg.textContent = '';
-  translateBtn.disabled = true;
-
-  if (!file) {
-    nameDisplay.textContent = 'Choose XML File';
-    infoDisplay.style.display = 'none';
-    return;
-  }
-
-  if (!file.name.endsWith(".xml")) {
-    errorMsg.textContent = 'Only XML files are supported.';
-    nameDisplay.textContent = 'Choose XML File';
+  if (!file.name.endsWith('.xml')) {
+    fileError.textContent = 'Please upload an XML file (.xml)';
+    fileNameDisplay.textContent = 'Choose XML File';
     fileInput.value = '';
-    infoDisplay.style.display = 'none';
+    fileInfoDisplay.style.display = 'none';
     return;
   }
-
+  
   const reader = new FileReader();
   reader.onload = e => {
-    const content = e.target.result;
     try {
-      if (!content.includes('<?xml') || !content.includes('<resources>')) {
-        throw new Error('The file is not a valid Android strings.xml format.');
+      if (!e.target.result.includes('<?xml') && !e.target.result.includes('<resources>')) {
+        throw new Error('Invalid XML');
       }
-      nameDisplay.textContent = file.name;
-      infoDisplay.textContent = `Selected File: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
-      infoDisplay.style.display = 'block';
-      translateBtn.disabled = false;
-    } catch (err) {
-      errorMsg.textContent = err.message;
+      fileNameDisplay.textContent = file.name;
+      fileInfoDisplay.textContent = `Selected: ${file.name} (${(file.size/1024).toFixed(2)} KB)`;
+      fileInfoDisplay.style.display = 'block';
+      translateButton.disabled = false;
+    } catch {
+      fileError.textContent = 'Invalid Android strings.xml';
+      fileNameDisplay.textContent = 'Choose XML File';
       fileInput.value = '';
-      nameDisplay.textContent = 'Choose XML File';
-      infoDisplay.style.display = 'none';
+      fileInfoDisplay.style.display = 'none';
     }
   };
-
   reader.readAsText(file);
 }
 
-let translationInProgress = false;
-let activeXHR = null;
+let isTranslating = false;
+let currentXHR = null;
 
-// Upload file and initiate translation process
-function startTranslation() {
-  if (translationInProgress) {
-    alert("Translation is already in progress. Please wait until it completes.");
+function uploadFile() {
+  if (isTranslating) {
+    alert('Please wait for the current translation to complete');
     return;
   }
+  
+  const file = document.getElementById('xmlFile').files[0];
+  if (!file) return alert("Please choose a file!");
 
-  const file = document.getElementById("xmlFile").files[0];
-  if (!file) {
-    alert("Please select a file before starting translation.");
-    return;
-  }
-
-  translationInProgress = true;
-  activeXHR = new XMLHttpRequest();
-
-  // Reset progress UI
+  isTranslating = true;
   document.getElementById("progress-bar").style.width = "0%";
   document.getElementById("progress-text").textContent = "0%";
   document.getElementById("line-counter").textContent = "0/0";
-  document.getElementById("downloadLink").style.display = "none";
-  document.getElementById("refreshPrompt").style.display = "none";
+  document.getElementById('downloadLink').style.display = 'none';
+  document.getElementById('refreshPrompt').style.display = 'none';
+  
+  // Clear previous log entries
   document.getElementById("translation-log").innerHTML = "";
+  // Show log container
   document.getElementById("log-container").style.display = "block";
 
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("from", document.getElementById("fromLanguage").value);
-  formData.append("to", document.getElementById("toLanguage").value);
+  formData.append("from", document.getElementById('fromLanguage').value);
+  formData.append("to", document.getElementById('toLanguage').value);
 
-  const progressEvents = new EventSource("/translation-progress");
-
-  // Handle translation progress events
-  progressEvents.onmessage = event => {
-    const { type, current, total, message } = JSON.parse(event.data);
-
-    if (type === "progress") {
-      const percent = Math.floor((current / total) * 100);
-      document.getElementById("progress-bar").style.width = `${percent}%`;
-      document.getElementById("progress-text").textContent = `${percent}%`;
-      document.getElementById("line-counter").textContent = `${current} / ${total}`;
-      displayStatus(`Translating line ${current} of ${total}`);
+  const xhr = new XMLHttpRequest();
+  currentXHR = xhr;
+  
+  // Set up event source for progress updates
+  const eventSource = new EventSource("/translation-progress");
+  
+  eventSource.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    
+    if (data.type === "progress") {
+      // Update progress bar
+      const percent = Math.floor(data.current / data.total * 100);
+      document.getElementById("progress-bar").style.width = percent + "%";
+      document.getElementById("progress-text").textContent = percent + "%";
+      
+      // Update line counter
+      document.getElementById("line-counter").textContent = `${data.current} / ${data.total}`;
+      updateStatusText(`Translating line ${data.current} of ${data.total}`);
+    } 
+    else if (data.type === "log") {
+      // Add to translation log
+      updateTranslationLog(data.message);
     }
-
-    if (type === "log") {
-      appendTranslationLog(message);
-    }
-
-    if (type === "complete") {
-      progressEvents.close();
+    else if (data.type === "complete") {
+      // Clean up when done
+      eventSource.close();
       document.getElementById("progress-bar").style.width = "100%";
       document.getElementById("progress-text").textContent = "100%";
-      document.getElementById("line-counter").textContent = `${total} / ${total}`;
-      displayStatus("Translation completed successfully.");
+      document.getElementById("line-counter").textContent = `${data.total} / ${data.total}`;
+      updateStatusText("Translation complete!");
     }
   };
-
-  progressEvents.onerror = () => {
-    progressEvents.close();
-    console.error("Failed to receive progress updates.");
+  
+  eventSource.onerror = function() {
+    eventSource.close();
+    console.error("EventSource failed");
   };
 
-  activeXHR.open("POST", "/translate");
-  activeXHR.responseType = "blob";
+  xhr.responseType = 'blob';
+  xhr.open("POST", "/translate", true);
 
-  // Handle server response
-  activeXHR.onload = () => {
-    translationInProgress = false;
-    progressEvents.close();
-
-    if (activeXHR.status === 200) {
-      const downloadLink = document.getElementById("downloadLink");
-      downloadLink.href = URL.createObjectURL(activeXHR.response);
-      downloadLink.style.display = "block";
-      displayStatus("Translation completed. File is ready for download.");
-      document.getElementById("refreshPrompt").style.display = "block";
+  xhr.onload = function() {
+    isTranslating = false;
+    currentXHR = null;
+    eventSource.close();
+    
+    if (xhr.status === 200) {
+      const link = document.getElementById('downloadLink');
+      link.href = URL.createObjectURL(xhr.response);
+      link.style.display = 'block';
+      document.getElementById("progress-bar").style.width = "100%";
+      document.getElementById("progress-text").textContent = "100%";
+      updateStatusText("File ready for download");
+      document.getElementById('refreshPrompt').style.display = 'block';
     } else {
-      displayStatus("Translation failed.");
-      alert("An error occurred during translation. Please try again.");
+      updateStatusText("Translation failed");
+      alert("Translation failed. Please try again.");
     }
   };
 
-  // Monitor upload progress
-  activeXHR.upload.onprogress = event => {
-    if (event.lengthComputable) {
-      const percent = Math.floor((event.loaded / event.total) * 100);
-      document.getElementById("progress-bar").style.width = `${percent}%`;
-      document.getElementById("progress-text").textContent = `${percent}%`;
-      displayStatus(`Uploading... ${percent}% complete`);
+  xhr.upload.onprogress = e => {
+    if (e.lengthComputable) {
+      const percent = Math.floor((e.loaded / e.total) * 100);
+      document.getElementById("progress-bar").style.width = percent + "%";
+      document.getElementById("progress-text").textContent = percent + "%";
+      updateStatusText(`Uploading... ${percent}% complete`);
     }
   };
 
-  activeXHR.send(formData);
+  xhr.send(formData);
 }
 
-// Reload the page to reset the application state
-function resetApp() {
+function refreshPage() {
   location.reload();
 }
